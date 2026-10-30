@@ -1,3 +1,5 @@
+> **Mint House minimal fork:** the default `feat/minimal` branch provides a single-node object store. See [deployment, releases and fork maintenance](docs/operations/minimal.md). The upstream README follows.
+
 [![RustFS](https://repository-images.githubusercontent.com/722597620/0fa936a2-8164-4f53-867f-def4beb64b21)](https://rustfs.com)
 
 <p align="center">RustFS is a high-performance, distributed object storage system built in Rust.</p>

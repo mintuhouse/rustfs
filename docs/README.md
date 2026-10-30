@@ -8,6 +8,8 @@ collection:
 
 ## Operations
 
+- [Minimal single-node distribution](operations/minimal.md) - deployment, image releases and maintenance of the Mint House fork.
+
 - [Table maintenance periodic queueing](operations/s3-tables-maintenance-scheduler.md) — opt-in scheduling, limits, worker handoff, and recovery.
 
 For PUT cleanup admission, blocking-pool isolation, and optional CPU affinity,
