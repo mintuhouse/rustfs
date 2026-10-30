@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -125,6 +126,7 @@ pub(crate) async fn init_embedded_runtime_hooks(obs_endpoint: String) -> Result<
     // first server's subscriber — try to publish anyway (first server wins),
     // and treat both an init failure and a set failure as "already set" so a
     // second startup does not abort (backlog#1052 S5).
+    #[cfg(not(feature = "single-node"))]
     match startup_runtime_sources::init_observability_guard(obs_endpoint).await {
         Ok(guard) => {
             if let Err(err) = startup_runtime_sources::set_observability_guard(guard) {

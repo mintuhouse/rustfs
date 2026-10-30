@@ -1,3 +1,4 @@
+# Modified for the experimental single-node build, 2026-10-30.
 # Copyright 2024 RustFS Team
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +31,7 @@ documentation = "https://docs.rs/rustfs-ecstore/latest/rustfs_ecstore/"
 workspace = true
 
 [features]
+local-only = []
 default = []
 gcs = ["dep:google-cloud-storage", "dep:google-cloud-auth"]
 # Compiles the controlled list-objects namespace-journal chaos injector into a

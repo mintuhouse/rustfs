@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,17 +23,19 @@ use super::handles::{
     default_lock_clients_interface, default_notification_system_interface, default_notify_interface,
     default_outbound_tls_runtime_interface, default_performance_metrics_interface, default_region_interface,
     default_replication_pool_interface, default_replication_stats_interface, default_runtime_port_interface,
-    default_s3select_db_interface, default_scanner_metrics_interface, default_server_config_interface,
-    default_storage_class_interface, default_tier_config_interface, default_transition_state_interface,
+    default_scanner_metrics_interface, default_server_config_interface, default_storage_class_interface,
+    default_tier_config_interface, default_transition_state_interface,
 };
 use super::interfaces::{
     ActionCredentialInterface, BootTimeInterface, BucketMetadataInterface, BucketMonitorInterface, BufferConfigInterface,
     DeploymentIdInterface, EndpointsInterface, ExpiryStateInterface, FederatedIdentityInterface, IamInterface,
     InternodeMetricsInterface, KmsInterface, KmsRuntimeInterface, LocalNodeNameInterface, LockClientInterface,
     LockClientsInterface, NotificationSystemInterface, NotifyInterface, OutboundTlsRuntimeInterface, PerformanceMetricsInterface,
-    RegionInterface, ReplicationPoolInterface, ReplicationStatsInterface, RuntimePortInterface, S3SelectDbInterface,
-    ScannerMetricsInterface, ServerConfigInterface, StorageClassInterface, TierConfigInterface, TransitionStateInterface,
+    RegionInterface, ReplicationPoolInterface, ReplicationStatsInterface, RuntimePortInterface, ScannerMetricsInterface,
+    ServerConfigInterface, StorageClassInterface, TierConfigInterface, TransitionStateInterface,
 };
+#[cfg(feature = "s3-select")]
+use super::{S3SelectDbInterface, default_s3select_db_interface};
 use crate::app::object_data_cache::ObjectDataCacheAdapter;
 use crate::app::object_traffic_health::ObjectTrafficHealth;
 use rustfs_iam::{federation::FederatedIdentityService, oidc::OidcConfigQuery, store::object::ObjectStore, sys::IamSys};
@@ -63,6 +66,7 @@ pub struct AppContext {
     lock_clients: Arc<dyn LockClientsInterface>,
     performance_metrics: Arc<dyn PerformanceMetricsInterface>,
     internode_metrics: Arc<dyn InternodeMetricsInterface>,
+    #[cfg(feature = "s3-select")]
     s3select_db: Arc<dyn S3SelectDbInterface>,
     local_node_name: Arc<dyn LocalNodeNameInterface>,
     action_credentials: Arc<dyn ActionCredentialInterface>,
@@ -113,6 +117,7 @@ impl AppContext {
             lock_clients: default_lock_clients_interface(),
             performance_metrics: default_performance_metrics_interface(),
             internode_metrics: default_internode_metrics_interface(),
+            #[cfg(feature = "s3-select")]
             s3select_db: default_s3select_db_interface(),
             local_node_name: default_local_node_name_interface(),
             action_credentials: default_action_credential_interface(),
@@ -237,6 +242,7 @@ impl AppContext {
         self.internode_metrics.clone()
     }
 
+    #[cfg(feature = "s3-select")]
     pub fn s3select_db(&self) -> Arc<dyn S3SelectDbInterface> {
         self.s3select_db.clone()
     }
@@ -309,6 +315,7 @@ pub(super) struct AppContextTestInterfaces {
     pub(super) lock_clients: Arc<dyn LockClientsInterface>,
     pub(super) performance_metrics: Arc<dyn PerformanceMetricsInterface>,
     pub(super) internode_metrics: Arc<dyn InternodeMetricsInterface>,
+    #[cfg(feature = "s3-select")]
     pub(super) s3select_db: Arc<dyn S3SelectDbInterface>,
     pub(super) local_node_name: Arc<dyn LocalNodeNameInterface>,
     pub(super) action_credentials: Arc<dyn ActionCredentialInterface>,
@@ -346,6 +353,7 @@ impl AppContext {
             lock_clients: interfaces.lock_clients,
             performance_metrics: interfaces.performance_metrics,
             internode_metrics: interfaces.internode_metrics,
+            #[cfg(feature = "s3-select")]
             s3select_db: interfaces.s3select_db,
             local_node_name: interfaces.local_node_name,
             action_credentials: interfaces.action_credentials,

@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -1515,6 +1516,7 @@ pub async fn start_http_server(
     let api_endpoints = format!("{protocol}://{local_ip_str}:{local_port}");
     let localhost_endpoint = format!("{protocol}://127.0.0.1:{local_port}");
     let now_time = jiff::Zoned::now().strftime("%Y-%m-%d %H:%M:%S").to_string();
+    #[cfg(not(feature = "single-node"))]
     if config.console_enable {
         admin::console::init_console_cfg(local_ip, local_port);
         let console_prefix = crate::server::console_prefix();
@@ -1580,13 +1582,16 @@ pub async fn start_http_server(
 
         b.set_auth(IAMAuth::with_server_context(access_key, secret_key, server_ctx.clone()));
         b.set_access(store);
-        b.set_route(storage::metadata_route::with_metadata_route(
-            admin::make_admin_route(config.console_enable, admin_server_ctx)?,
-            metadata_route_host,
-            website_route_domains,
-            protocol,
-            Arc::clone(&server_ctx),
-        ));
+        #[cfg(not(feature = "single-node"))]
+        {
+            b.set_route(storage::metadata_route::with_metadata_route(
+                admin::make_admin_route(config.console_enable, admin_server_ctx)?,
+                metadata_route_host,
+                website_route_domains,
+                protocol,
+                Arc::clone(&server_ctx),
+            ));
+        }
 
         // Normalize leading/duplicate forward slashes in object keys (MinIO parity).
         // AWS S3 accepts keys such as "/foo/bar"; without this, requests like
@@ -2264,46 +2269,51 @@ fn process_connection(
         // capped by tonic's 4 MiB default. Env-overridable via RUSTFS_INTERNODE_RPC_MAX_MESSAGE_SIZE.
         // Codec size limits live on the generated service servers, so set them before wrapping
         // each service in the auth interceptor.
-        let rpc_max_message_size = rustfs_protos::internode_rpc_max_message_size();
-        let node_service = InterceptedService::new(
-            NodeServiceServer::new(make_server_for_slot(Arc::clone(&server_ctx)))
-                .max_decoding_message_size(rpc_max_message_size)
-                .max_encoding_message_size(rpc_max_message_size),
-            check_auth,
-        );
-        let heal_control_max_message_size = rustfs_protos::HEAL_CONTROL_RPC_MAX_MESSAGE_SIZE;
-        let heal_control_service = InterceptedService::new(
-            HealControlServiceServer::new(storage::tonic_service::make_heal_control_server_with_cache(
-                server_ctx.heal_topology_fingerprint(),
-            ))
-            .max_decoding_message_size(heal_control_max_message_size)
-            .max_encoding_message_size(heal_control_max_message_size),
-            check_auth,
-        );
-        let tier_mutation_control_max_message_size = rustfs_protos::TIER_MUTATION_RPC_MAX_MESSAGE_SIZE;
-        let tier_mutation_control_service = InterceptedService::new(
-            TierMutationControlServiceServer::new(storage::tonic_service::make_tier_mutation_control_server())
-                .max_decoding_message_size(tier_mutation_control_max_message_size)
-                .max_encoding_message_size(tier_mutation_control_max_message_size),
-            check_auth,
-        );
-        let rpc_service = RpcRequestPathService::new(
-            Routes::new(node_service)
-                .add_service(InterceptedService::new(storage::tonic_service::make_scanner_control_server(), check_auth))
-                .add_service(heal_control_service)
-                .add_service(tier_mutation_control_service)
-                .prepare(),
-        );
-
         #[cfg(feature = "swift")]
         let http_service = SwiftService::new(true, None, s3_service);
         #[cfg(not(feature = "swift"))]
         let http_service = s3_service;
         let http_service = EarlyResponseBodyService::new(http_service, request_body_idle_timeout);
+        #[cfg(not(feature = "single-node"))]
         let http_service = InternodeRpcService::new(http_service);
 
-        let external_service = hybrid(http_service.clone(), rpc_service.clone());
-        let internode_service = hybrid(http_service, rpc_service);
+        #[cfg(not(feature = "single-node"))]
+        let (external_service, internode_service) = {
+            let rpc_max_message_size = rustfs_protos::internode_rpc_max_message_size();
+            let node_service = InterceptedService::new(
+                NodeServiceServer::new(make_server_for_slot(Arc::clone(&server_ctx)))
+                    .max_decoding_message_size(rpc_max_message_size)
+                    .max_encoding_message_size(rpc_max_message_size),
+                check_auth,
+            );
+            let heal_control_max_message_size = rustfs_protos::HEAL_CONTROL_RPC_MAX_MESSAGE_SIZE;
+            let heal_control_service = InterceptedService::new(
+                HealControlServiceServer::new(storage::tonic_service::make_heal_control_server_with_cache(
+                    server_ctx.heal_topology_fingerprint(),
+                ))
+                .max_decoding_message_size(heal_control_max_message_size)
+                .max_encoding_message_size(heal_control_max_message_size),
+                check_auth,
+            );
+            let tier_mutation_control_max_message_size = rustfs_protos::TIER_MUTATION_RPC_MAX_MESSAGE_SIZE;
+            let tier_mutation_control_service = InterceptedService::new(
+                TierMutationControlServiceServer::new(storage::tonic_service::make_tier_mutation_control_server())
+                    .max_decoding_message_size(tier_mutation_control_max_message_size)
+                    .max_encoding_message_size(tier_mutation_control_max_message_size),
+                check_auth,
+            );
+            let rpc_service = RpcRequestPathService::new(
+                Routes::new(node_service)
+                    .add_service(InterceptedService::new(storage::tonic_service::make_scanner_control_server(), check_auth))
+                    .add_service(heal_control_service)
+                    .add_service(tier_mutation_control_service)
+                    .prepare(),
+            );
+
+            (hybrid(http_service.clone(), rpc_service.clone()), hybrid(http_service, rpc_service))
+        };
+        #[cfg(feature = "single-node")]
+        let external_service = hybrid(http_service.clone(), http_service);
 
         let remote_addr = match socket.peer_addr() {
             Ok(addr) => Some(RemoteAddr(addr)),
@@ -2365,6 +2375,7 @@ fn process_connection(
                 server_domains_configured
             )
         };
+        #[cfg(not(feature = "single-node"))]
         let build_internode_stack = |service| {
             ServiceBuilder::new()
                 .layer(AddExtensionLayer::new(remote_addr))
@@ -2445,8 +2456,13 @@ fn process_connection(
                 .service(service)
         };
         let external_stack_service = build_external_stack(external_service);
-        let internode_stack_service = build_internode_stack(internode_service);
-        let hybrid_service = PathDispatchService::new(external_stack_service, internode_stack_service);
+        #[cfg(not(feature = "single-node"))]
+        let hybrid_service = {
+            let internode_stack_service = build_internode_stack(internode_service);
+            PathDispatchService::new(external_stack_service, internode_stack_service)
+        };
+        #[cfg(feature = "single-node")]
+        let hybrid_service = external_stack_service;
 
         let hybrid_service = TowerToHyperService::new(hybrid_service);
 

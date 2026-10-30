@@ -1,3 +1,4 @@
+# Modified for the experimental single-node build, 2026-10-30.
 # Copyright 2024 RustFS Team
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +37,11 @@ name = "rustfs"
 path = "src/main.rs"
 
 [[bin]]
+name = "rustfs-single"
+path = "src/bin/rustfs-single.rs"
+required-features = ["single-node"]
+
+[[bin]]
 name = "rustfs-cli"
 path = "src/bin/rustfs-cli.rs"
 
@@ -57,7 +63,11 @@ name = "swift_object_integration_test"
 required-features = ["swift"]
 
 [features]
-default = ["ftps", "webdav", "gcs"]
+default = ["ftps", "webdav", "gcs", "s3-select"]
+single-node = ["rustfs-ecstore/local-only"]
+single-node-narrow = ["single-node"]
+single-node-multipart = ["single-node-narrow"]
+s3-select = ["dep:rustfs-s3select-api", "dep:rustfs-s3select-query", "dep:datafusion"]
 gcs = ["rustfs-ecstore/gcs", "dep:google-cloud-auth"]
 metrics-gpu = ["rustfs-obs/gpu"]
 ftps = ["rustfs-protocols/ftps"]
@@ -67,7 +77,7 @@ sftp = ["rustfs-protocols/sftp"]
 license = []
 io-scheduler-debug = []  # Enable debug information in I/O scheduler
 tracing-chunk-debug = []  # Enable per-chunk tracing in data plane (high noise, for debugging only)
-full = ["metrics-gpu", "ftps", "swift", "webdav", "sftp", "pyroscope", "gcs"]
+full = ["s3-select", "metrics-gpu", "ftps", "swift", "webdav", "sftp", "pyroscope", "gcs"]
 e2e-test-hooks = ["rustfs-ecstore/e2e-test-hooks"]
 # Shortens Connect credentials only in debug E2E builds.
 connect-e2e-short-credentials = []
@@ -223,6 +233,8 @@ hotpath-cpu = [
 workspace = true
 
 [dependencies]
+arrow-schema = "=59.3.1"
+parquet = "=59.3.1"
 hotpath.workspace = true
 # RustFS Internal Crates
 rustfs-heal = { workspace = true }
@@ -253,8 +265,8 @@ rustfs-s3-types = { workspace = true }
 rustfs-s3-ops = { workspace = true }
 rustfs-security-governance = { workspace = true }
 rustfs-data-usage = { workspace = true }
-rustfs-s3select-api = { workspace = true }
-rustfs-s3select-query = { workspace = true }
+rustfs-s3select-api = { workspace = true, optional = true }
+rustfs-s3select-query = { workspace = true, optional = true }
 rustfs-extension-schema = { workspace = true }
 rustfs-targets = { workspace = true }
 rustfs-storage-api = { workspace = true }
@@ -343,7 +355,7 @@ rsa = { workspace = true, features = ["sha2"] }
 base64-simd.workspace = true
 clap = { workspace = true, features = ["derive", "env"] }
 const-str = { workspace = true, features = ["std", "proc"] }
-datafusion = { workspace = true, default-features = false, features = ["parquet", "recursive_protection", "sql"] }
+datafusion = { workspace = true, optional = true, default-features = false, features = ["parquet", "recursive_protection", "sql"] }
 hex-simd.workspace = true
 matchit = { workspace = true }
 md-5 = { workspace = true }

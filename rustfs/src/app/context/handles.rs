@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,14 +19,16 @@ use super::super::storage_api::context::runtime::{
     BucketBandwidthMonitor, DailyAllTierStats, DynReplicationPool, ExpiryState, NotificationSys, ReplicationStats,
     ScannerMetricsReport, StorageClassConfig, TierConfigMgr, TransitionState,
 };
+#[cfg(feature = "s3-select")]
+use super::interfaces::S3SelectDbInterface;
 use super::interfaces::{
     ActionCredentialInterface, BootTimeInterface, BucketMetadataInterface, BucketMonitorInterface, BufferConfigInterface,
     DeploymentIdInterface, EndpointsInterface, ExpiryStateInterface, FederatedIdentityInterface,
     FederatedIdentityRuntimeSnapshot, IamInterface, InternodeMetricsInterface, KmsInterface, KmsRuntimeInterface,
     LocalNodeNameInterface, LockClientInterface, LockClientsInterface, NotificationSystemInterface, NotifyInterface,
     OutboundTlsRuntimeInterface, PerformanceMetricsInterface, RegionInterface, ReplicationPoolInterface,
-    ReplicationStatsInterface, RuntimePortInterface, S3SelectDbInterface, ScannerMetricsInterface, ServerConfigInterface,
-    StorageClassInterface, TierConfigInterface, TransitionStateInterface,
+    ReplicationStatsInterface, RuntimePortInterface, ScannerMetricsInterface, ServerConfigInterface, StorageClassInterface,
+    TierConfigInterface, TransitionStateInterface,
 };
 use super::runtime_sources;
 use crate::config::RustFSBufferConfig;
@@ -37,9 +40,11 @@ use rustfs_io_metrics::{PerformanceMetrics, internode_metrics::InternodeMetrics}
 use rustfs_kms::KmsServiceManager;
 use rustfs_lock::LockClient;
 use rustfs_notify::{EventArgs, NotificationError};
+#[cfg(feature = "s3-select")]
 use rustfs_s3select_api::{QueryResult, server::dbms::DatabaseManagerSystem};
 use rustfs_targets::{EventName, arn::TargetID};
 use rustfs_tls_runtime::{GlobalPublishedOutboundTlsState, TlsGeneration};
+#[cfg(any(feature = "s3-select", test))]
 use s3s::dto::SelectObjectContentInput;
 use std::{
     collections::HashMap,
@@ -349,9 +354,11 @@ impl InternodeMetricsInterface for InternodeMetricsHandle {
 
 /// Default S3 Select database interface adapter.
 #[derive(Default)]
+#[cfg(feature = "s3-select")]
 pub struct S3SelectDbHandle;
 
 #[async_trait]
+#[cfg(feature = "s3-select")]
 impl S3SelectDbInterface for S3SelectDbHandle {
     async fn get(
         &self,
@@ -576,6 +583,7 @@ pub fn default_internode_metrics_interface() -> Arc<dyn InternodeMetricsInterfac
     Arc::new(InternodeMetricsHandle)
 }
 
+#[cfg(feature = "s3-select")]
 pub fn default_s3select_db_interface() -> Arc<dyn S3SelectDbInterface> {
     Arc::new(S3SelectDbHandle)
 }

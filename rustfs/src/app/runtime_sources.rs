@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +23,9 @@ pub(crate) use crate::runtime_sources::{
     current_notification_system_for_context, current_object_data_cache_handle_for_context,
     current_object_store_handle_for_context,
 };
+#[cfg(feature = "s3-select")]
 use rustfs_s3select_api::{QueryResult, server::dbms::DatabaseManagerSystem};
+#[cfg(any(feature = "s3-select", test))]
 use s3s::dto::SelectObjectContentInput;
 use std::sync::Arc;
 #[cfg(test)]
@@ -44,6 +47,7 @@ pub(crate) fn current_object_data_cache_for_context(app_context: Option<&AppCont
         .unwrap_or_else(root_runtime_sources::fallback_object_data_cache_handle)
 }
 
+#[cfg(feature = "s3-select")]
 pub(crate) async fn current_s3select_db(
     input: SelectObjectContentInput,
     enable_debug: bool,

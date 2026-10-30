@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,8 +46,10 @@ use rustfs_iam::{
 use rustfs_io_metrics::{PerformanceMetrics, internode_metrics::InternodeMetrics};
 use rustfs_kms::{KmsServiceManager, ObjectEncryptionService};
 use rustfs_lock::LockClient;
+#[cfg(feature = "s3-select")]
 use rustfs_s3select_api::{QueryResult, server::dbms::DatabaseManagerSystem};
 use rustfs_tls_runtime::{GlobalPublishedOutboundTlsState, TlsGeneration};
+#[cfg(any(feature = "s3-select", test))]
 use s3s::dto::SelectObjectContentInput;
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 use tokio::sync::RwLock;
@@ -241,6 +244,7 @@ pub fn resolve_internode_metrics() -> Option<Arc<InternodeMetrics>> {
 }
 
 /// Resolve S3 Select database using AppContext-first precedence.
+#[cfg(feature = "s3-select")]
 pub async fn resolve_s3select_db(
     input: SelectObjectContentInput,
     enable_debug: bool,
@@ -460,6 +464,7 @@ fn resolve_internode_metrics_with(context: Option<Arc<AppContext>>) -> Option<Ar
     context.map(|context| context.internode_metrics().handle())
 }
 
+#[cfg(feature = "s3-select")]
 async fn resolve_s3select_db_with(
     context: Arc<AppContext>,
     input: SelectObjectContentInput,
@@ -526,6 +531,8 @@ fn resolve_buffer_config_with(context: Option<Arc<AppContext>>) -> Option<RustFS
 mod tests {
     use super::super::storage_api::context::runtime::init_local_disks;
     use super::super::storage_api::context::{Endpoint, Endpoints, PoolEndpoints};
+    #[cfg(feature = "s3-select")]
+    use super::S3SelectDbInterface;
     use super::*;
     use crate::app::context::global::AppContextTestInterfaces;
     use crate::app::context::handles::{
@@ -536,8 +543,8 @@ mod tests {
         ActionCredentialInterface, BootTimeInterface, BucketMetadataInterface, BufferConfigInterface, DeploymentIdInterface,
         EndpointsInterface, FederatedIdentityInterface, IamInterface, InternodeMetricsInterface, KmsInterface,
         KmsRuntimeInterface, LocalNodeNameInterface, LockClientInterface, LockClientsInterface, OutboundTlsRuntimeInterface,
-        PerformanceMetricsInterface, RegionInterface, ReplicationStatsInterface, RuntimePortInterface, S3SelectDbInterface,
-        ScannerMetricsInterface, ServerConfigInterface, StorageClassInterface, TierConfigInterface, TransitionStateInterface,
+        PerformanceMetricsInterface, RegionInterface, ReplicationStatsInterface, RuntimePortInterface, ScannerMetricsInterface,
+        ServerConfigInterface, StorageClassInterface, TierConfigInterface, TransitionStateInterface,
     };
     use crate::config::{RustFSBufferConfig, WorkloadProfile};
     use async_trait::async_trait;
@@ -549,6 +556,7 @@ mod tests {
     };
     use rustfs_io_metrics::{PerformanceMetrics, internode_metrics::InternodeMetrics};
     use rustfs_lock::{LocalClient, LockClient};
+    #[cfg(feature = "s3-select")]
     use rustfs_s3select_api::{
         QueryResult,
         query::{Query, execution::QueryStateMachineRef, logical_planner::Plan},
@@ -777,11 +785,13 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "s3-select")]
     struct TestS3SelectDbInterface {
         db: Arc<dyn DatabaseManagerSystem + Send + Sync>,
     }
 
     #[async_trait]
+    #[cfg(feature = "s3-select")]
     impl S3SelectDbInterface for TestS3SelectDbInterface {
         async fn get(
             &self,
@@ -792,9 +802,11 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "s3-select")]
     struct TestS3SelectDb;
 
     #[async_trait]
+    #[cfg(feature = "s3-select")]
     impl DatabaseManagerSystem for TestS3SelectDb {
         async fn execute(&self, _query: &Query) -> QueryResult<QueryHandle> {
             unreachable!("resolver tests only compare database handles")
@@ -1035,6 +1047,7 @@ mod tests {
         context_lock_clients.insert("context-node:9000".to_string(), context_lock_client.clone());
         let context_performance_metrics = Arc::new(PerformanceMetrics::new());
         let context_internode_metrics = Arc::new(InternodeMetrics::default());
+        #[cfg(feature = "s3-select")]
         let context_s3select_db: Arc<dyn DatabaseManagerSystem + Send + Sync> = Arc::new(TestS3SelectDb);
         let context_outbound_tls_state = GlobalPublishedOutboundTlsState {
             generation: TlsGeneration(41),
@@ -1112,6 +1125,7 @@ mod tests {
                 internode_metrics: Arc::new(TestInternodeMetricsInterface {
                     metrics: context_internode_metrics.clone(),
                 }),
+                #[cfg(feature = "s3-select")]
                 s3select_db: Arc::new(TestS3SelectDbInterface {
                     db: context_s3select_db.clone(),
                 }),
@@ -1255,6 +1269,7 @@ mod tests {
             &resolve_internode_metrics_with(Some(context.clone())).expect("context internode metrics"),
             &context_internode_metrics
         ));
+        #[cfg(feature = "s3-select")]
         assert!(Arc::ptr_eq(
             &resolve_s3select_db_with(context.clone(), test_select_input(), false)
                 .await

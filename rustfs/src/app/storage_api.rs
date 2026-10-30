@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -1259,6 +1260,7 @@ pub(crate) mod multipart_usecase {
     pub(crate) use crate::storage::storage_api::{ECStore, StorageObjectInfo, StorageObjectOptions, StoragePutObjReader};
 }
 
+#[cfg(feature = "s3-select")]
 pub(crate) mod select_object {
     pub(crate) use super::{options, request_context, sse};
     #[cfg(test)]

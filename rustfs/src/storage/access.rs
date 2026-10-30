@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -2290,6 +2291,7 @@ impl S3Access for FS {
     /// Checks whether the AbortMultipartUpload request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn abort_multipart_upload(&self, req: &mut S3Request<AbortMultipartUploadInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -2305,6 +2307,7 @@ impl S3Access for FS {
     /// Checks whether the CompleteMultipartUpload request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn complete_multipart_upload(&self, req: &mut S3Request<CompleteMultipartUploadInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -2321,6 +2324,7 @@ impl S3Access for FS {
     /// Checks whether the CopyObject request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn copy_object(&self, req: &mut S3Request<CopyObjectInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -2370,6 +2374,7 @@ impl S3Access for FS {
     }
 
     /// Checks whether the CreateMultipartUpload request has accesses to the resources.
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn create_multipart_upload(&self, req: &mut S3Request<CreateMultipartUploadInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -2419,6 +2424,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketAnalyticsConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_analytics_configuration(
         &self,
         _req: &mut S3Request<DeleteBucketAnalyticsConfigurationInput>,
@@ -2429,6 +2435,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketCors request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_cors(&self, req: &mut S3Request<DeleteBucketCorsInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2439,6 +2446,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketEncryption request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_encryption(&self, req: &mut S3Request<DeleteBucketEncryptionInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2449,6 +2457,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketIntelligentTieringConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_intelligent_tiering_configuration(
         &self,
         _req: &mut S3Request<DeleteBucketIntelligentTieringConfigurationInput>,
@@ -2459,6 +2468,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketInventoryConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_inventory_configuration(
         &self,
         _req: &mut S3Request<DeleteBucketInventoryConfigurationInput>,
@@ -2469,6 +2479,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketLifecycle request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_lifecycle(&self, req: &mut S3Request<DeleteBucketLifecycleInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2479,6 +2490,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketMetricsConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_metrics_configuration(
         &self,
         _req: &mut S3Request<DeleteBucketMetricsConfigurationInput>,
@@ -2489,6 +2501,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketOwnershipControls request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_ownership_controls(&self, _req: &mut S3Request<DeleteBucketOwnershipControlsInput>) -> S3Result<()> {
         Ok(())
     }
@@ -2496,6 +2509,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketPolicy request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_policy(&self, req: &mut S3Request<DeleteBucketPolicyInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2506,6 +2520,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketReplication request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_replication(&self, req: &mut S3Request<DeleteBucketReplicationInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2516,6 +2531,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketTagging request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_tagging(&self, req: &mut S3Request<DeleteBucketTaggingInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2526,6 +2542,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteBucketWebsite request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_website(&self, req: &mut S3Request<DeleteBucketWebsiteInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2594,6 +2611,7 @@ impl S3Access for FS {
     /// Checks whether the DeleteObjectTagging request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_object_tagging(&self, req: &mut S3Request<DeleteObjectTaggingInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2622,6 +2640,7 @@ impl S3Access for FS {
     /// Checks whether the DeletePublicAccessBlock request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_public_access_block(&self, req: &mut S3Request<DeletePublicAccessBlockInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2632,6 +2651,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketAccelerateConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_accelerate_configuration(
         &self,
         req: &mut S3Request<GetBucketAccelerateConfigurationInput>,
@@ -2645,6 +2665,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketAcl request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_acl(&self, req: &mut S3Request<GetBucketAclInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2655,6 +2676,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketAnalyticsConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_analytics_configuration(
         &self,
         _req: &mut S3Request<GetBucketAnalyticsConfigurationInput>,
@@ -2665,6 +2687,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketCors request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_cors(&self, req: &mut S3Request<GetBucketCorsInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2675,6 +2698,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketEncryption request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_encryption(&self, req: &mut S3Request<GetBucketEncryptionInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2685,6 +2709,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketIntelligentTieringConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_intelligent_tiering_configuration(
         &self,
         _req: &mut S3Request<GetBucketIntelligentTieringConfigurationInput>,
@@ -2695,6 +2720,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketInventoryConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_inventory_configuration(
         &self,
         _req: &mut S3Request<GetBucketInventoryConfigurationInput>,
@@ -2705,6 +2731,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketLifecycleConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_lifecycle_configuration(
         &self,
         req: &mut S3Request<GetBucketLifecycleConfigurationInput>,
@@ -2728,6 +2755,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketLogging request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_logging(&self, req: &mut S3Request<GetBucketLoggingInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2738,6 +2766,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketMetricsConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_metrics_configuration(&self, _req: &mut S3Request<GetBucketMetricsConfigurationInput>) -> S3Result<()> {
         Ok(())
     }
@@ -2745,6 +2774,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketNotificationConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_notification_configuration(
         &self,
         req: &mut S3Request<GetBucketNotificationConfigurationInput>,
@@ -2758,6 +2788,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketOwnershipControls request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_ownership_controls(&self, _req: &mut S3Request<GetBucketOwnershipControlsInput>) -> S3Result<()> {
         Ok(())
     }
@@ -2765,6 +2796,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketPolicy request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_policy(&self, req: &mut S3Request<GetBucketPolicyInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2775,6 +2807,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketPolicyStatus request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_policy_status(&self, req: &mut S3Request<GetBucketPolicyStatusInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2785,6 +2818,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketReplication request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_replication(&self, req: &mut S3Request<GetBucketReplicationInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2795,6 +2829,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketRequestPayment request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_request_payment(&self, req: &mut S3Request<GetBucketRequestPaymentInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2805,6 +2840,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketTagging request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_tagging(&self, req: &mut S3Request<GetBucketTaggingInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2815,6 +2851,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketVersioning request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_versioning(&self, req: &mut S3Request<GetBucketVersioningInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2825,6 +2862,7 @@ impl S3Access for FS {
     /// Checks whether the GetBucketWebsite request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_website(&self, req: &mut S3Request<GetBucketWebsiteInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2853,6 +2891,7 @@ impl S3Access for FS {
     /// Checks whether the GetObjectAcl request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_acl(&self, req: &mut S3Request<GetObjectAclInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2865,6 +2904,7 @@ impl S3Access for FS {
     /// Checks whether the GetObjectAttributes request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_attributes(&self, req: &mut S3Request<GetObjectAttributesInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2885,6 +2925,7 @@ impl S3Access for FS {
     /// Checks whether the GetObjectLegalHold request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_legal_hold(&self, req: &mut S3Request<GetObjectLegalHoldInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2897,6 +2938,7 @@ impl S3Access for FS {
     /// Checks whether the GetObjectLockConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_lock_configuration(&self, req: &mut S3Request<GetObjectLockConfigurationInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2907,6 +2949,7 @@ impl S3Access for FS {
     /// Checks whether the GetObjectRetention request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_retention(&self, req: &mut S3Request<GetObjectRetentionInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2919,6 +2962,7 @@ impl S3Access for FS {
     /// Checks whether the GetObjectTagging request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_tagging(&self, req: &mut S3Request<GetObjectTaggingInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2935,6 +2979,7 @@ impl S3Access for FS {
     /// Checks whether the GetObjectTorrent request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_torrent(&self, _req: &mut S3Request<GetObjectTorrentInput>) -> S3Result<()> {
         Ok(())
     }
@@ -2942,6 +2987,7 @@ impl S3Access for FS {
     /// Checks whether the GetPublicAccessBlock request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_public_access_block(&self, req: &mut S3Request<GetPublicAccessBlockInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -2989,6 +3035,7 @@ impl S3Access for FS {
     /// Checks whether the ListBucketAnalyticsConfigurations request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn list_bucket_analytics_configurations(
         &self,
         _req: &mut S3Request<ListBucketAnalyticsConfigurationsInput>,
@@ -2999,6 +3046,7 @@ impl S3Access for FS {
     /// Checks whether the ListBucketIntelligentTieringConfigurations request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn list_bucket_intelligent_tiering_configurations(
         &self,
         _req: &mut S3Request<ListBucketIntelligentTieringConfigurationsInput>,
@@ -3009,6 +3057,7 @@ impl S3Access for FS {
     /// Checks whether the ListBucketInventoryConfigurations request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn list_bucket_inventory_configurations(
         &self,
         _req: &mut S3Request<ListBucketInventoryConfigurationsInput>,
@@ -3019,6 +3068,7 @@ impl S3Access for FS {
     /// Checks whether the ListBucketMetricsConfigurations request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn list_bucket_metrics_configurations(
         &self,
         _req: &mut S3Request<ListBucketMetricsConfigurationsInput>,
@@ -3037,6 +3087,7 @@ impl S3Access for FS {
     /// Checks whether the ListMultipartUploads request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn list_multipart_uploads(&self, req: &mut S3Request<ListMultipartUploadsInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -3053,6 +3104,7 @@ impl S3Access for FS {
     ///
     /// Returns `Ok(())` if the request is allowed, or an error if access is denied or another
     /// authorization-related issue occurs.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn list_object_versions(&self, req: &mut S3Request<ListObjectVersionsInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let req_info = ext_req_info_mut(&mut req.extensions)?;
@@ -3091,6 +3143,7 @@ impl S3Access for FS {
     /// Checks whether the ListParts request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn list_parts(&self, req: &mut S3Request<ListPartsInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -3104,6 +3157,7 @@ impl S3Access for FS {
     }
 
     /// Checks whether the PostObject request has accesses to the resources.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn post_object(&self, req: &mut S3Request<PostObjectInput>) -> S3Result<()> {
         validate_post_object_success_controls(&req.input)?;
 
@@ -3119,6 +3173,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketAccelerateConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_accelerate_configuration(
         &self,
         req: &mut S3Request<PutBucketAccelerateConfigurationInput>,
@@ -3132,6 +3187,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketAcl request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_acl(&self, req: &mut S3Request<PutBucketAclInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3142,6 +3198,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketAnalyticsConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_analytics_configuration(
         &self,
         _req: &mut S3Request<PutBucketAnalyticsConfigurationInput>,
@@ -3152,6 +3209,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketCors request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_cors(&self, req: &mut S3Request<PutBucketCorsInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3162,6 +3220,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketEncryption request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_encryption(&self, req: &mut S3Request<PutBucketEncryptionInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3172,6 +3231,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketIntelligentTieringConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_intelligent_tiering_configuration(
         &self,
         _req: &mut S3Request<PutBucketIntelligentTieringConfigurationInput>,
@@ -3182,6 +3242,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketInventoryConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_inventory_configuration(
         &self,
         _req: &mut S3Request<PutBucketInventoryConfigurationInput>,
@@ -3192,6 +3253,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketLifecycleConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_lifecycle_configuration(
         &self,
         req: &mut S3Request<PutBucketLifecycleConfigurationInput>,
@@ -3202,6 +3264,7 @@ impl S3Access for FS {
         authorize_bucket_config_mutation(self, req, Action::S3Action(S3Action::PutBucketLifecycleAction)).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_logging(&self, req: &mut S3Request<PutBucketLoggingInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3212,6 +3275,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketMetricsConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_metrics_configuration(&self, _req: &mut S3Request<PutBucketMetricsConfigurationInput>) -> S3Result<()> {
         Ok(())
     }
@@ -3219,6 +3283,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketNotificationConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_notification_configuration(
         &self,
         req: &mut S3Request<PutBucketNotificationConfigurationInput>,
@@ -3232,6 +3297,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketOwnershipControls request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_ownership_controls(&self, _req: &mut S3Request<PutBucketOwnershipControlsInput>) -> S3Result<()> {
         Ok(())
     }
@@ -3239,6 +3305,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketPolicy request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_policy(&self, req: &mut S3Request<PutBucketPolicyInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3249,6 +3316,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketReplication request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_replication(&self, req: &mut S3Request<PutBucketReplicationInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3259,6 +3327,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketRequestPayment request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_request_payment(&self, req: &mut S3Request<PutBucketRequestPaymentInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3269,6 +3338,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketTagging request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_tagging(&self, req: &mut S3Request<PutBucketTaggingInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3279,6 +3349,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketVersioning request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_versioning(&self, req: &mut S3Request<PutBucketVersioningInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3289,6 +3360,7 @@ impl S3Access for FS {
     /// Checks whether the PutBucketWebsite request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_website(&self, req: &mut S3Request<PutBucketWebsiteInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3350,6 +3422,7 @@ impl S3Access for FS {
     /// Checks whether the PutObjectAcl request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_acl(&self, req: &mut S3Request<PutObjectAclInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3362,6 +3435,7 @@ impl S3Access for FS {
     /// Checks whether the PutObjectLegalHold request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_legal_hold(&self, req: &mut S3Request<PutObjectLegalHoldInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3378,6 +3452,7 @@ impl S3Access for FS {
     /// Checks whether the PutObjectLockConfiguration request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_lock_configuration(&self, req: &mut S3Request<PutObjectLockConfigurationInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3386,6 +3461,7 @@ impl S3Access for FS {
     }
 
     /// Checks whether the PutObjectRetention request has accesses to the resources.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_retention(&self, req: &mut S3Request<PutObjectRetentionInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3409,6 +3485,7 @@ impl S3Access for FS {
     /// Checks whether the PutObjectTagging request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_tagging(&self, req: &mut S3Request<PutObjectTaggingInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3425,6 +3502,7 @@ impl S3Access for FS {
     /// Checks whether the PutPublicAccessBlock request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_public_access_block(&self, req: &mut S3Request<PutPublicAccessBlockInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3435,6 +3513,7 @@ impl S3Access for FS {
     /// Checks whether the RestoreObject request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn restore_object(&self, req: &mut S3Request<RestoreObjectInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -3453,6 +3532,7 @@ impl S3Access for FS {
     /// Checks whether the SelectObjectContent request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn select_object_content(&self, req: &mut S3Request<SelectObjectContentInput>) -> S3Result<()> {
         let req_info = ext_req_info_mut(&mut req.extensions)?;
         req_info.bucket = Some(req.input.bucket.clone());
@@ -3464,6 +3544,7 @@ impl S3Access for FS {
     /// Checks whether the UploadPart request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn upload_part(&self, req: &mut S3Request<UploadPartInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -3479,6 +3560,7 @@ impl S3Access for FS {
     /// Checks whether the UploadPartCopy request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn upload_part_copy(&self, req: &mut S3Request<UploadPartCopyInput>) -> S3Result<()> {
         let bucket = req.input.bucket.clone();
         let bucket_generation = load_bucket_generation(self, req, &bucket).await;
@@ -3516,6 +3598,7 @@ impl S3Access for FS {
     /// Checks whether the WriteGetObjectResponse request has accesses to the resources.
     ///
     /// This method returns `Ok(())` by default.
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn write_get_object_response(&self, _req: &mut S3Request<WriteGetObjectResponseInput>) -> S3Result<()> {
         Ok(())
     }

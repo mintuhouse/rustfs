@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -248,7 +249,11 @@ async fn read_version_via_coalescer(
     if !allow_coalescing || !read_version_coalescing_enabled() {
         return disk.read_version(org_bucket, bucket, object, version_id, opts).await;
     }
-    if !matches!(disk.as_ref(), Disk::Remote(_)) {
+    #[cfg(feature = "local-only")]
+    let is_remote = false;
+    #[cfg(not(feature = "local-only"))]
+    let is_remote = matches!(disk.as_ref(), Disk::Remote(_));
+    if !is_remote {
         record_read_version_coalescer_event("bypass_non_remote", 1);
         return disk.read_version(org_bucket, bucket, object, version_id, opts).await;
     }

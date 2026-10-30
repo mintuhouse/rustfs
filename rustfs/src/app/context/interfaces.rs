@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,9 +28,11 @@ use rustfs_io_metrics::{PerformanceMetrics, internode_metrics::InternodeMetrics}
 use rustfs_kms::KmsServiceManager;
 use rustfs_lock::LockClient;
 use rustfs_notify::{EventArgs, NotificationError};
+#[cfg(feature = "s3-select")]
 use rustfs_s3select_api::{QueryResult, server::dbms::DatabaseManagerSystem};
 use rustfs_targets::{EventName, arn::TargetID};
 use rustfs_tls_runtime::{GlobalPublishedOutboundTlsState, TlsGeneration};
+#[cfg(any(feature = "s3-select", test))]
 use s3s::dto::SelectObjectContentInput;
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 use tokio::sync::RwLock;
@@ -174,6 +177,7 @@ pub trait InternodeMetricsInterface: Send + Sync {
 
 /// S3 Select database interface for object query execution.
 #[async_trait]
+#[cfg(feature = "s3-select")]
 pub trait S3SelectDbInterface: Send + Sync {
     async fn get(
         &self,

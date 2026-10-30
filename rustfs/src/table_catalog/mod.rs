@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,13 +40,11 @@ use crate::storage_api::table::{
     BUCKET_TABLE_RESERVED_PREFIX, Error as EcstoreError, RUSTFS_META_BUCKET, StorageError, get_bucket_metadata,
     get_lock_acquire_timeout, table_catalog_path_hash,
 };
+use arrow_schema::SchemaRef;
 use bytes::Bytes;
-use datafusion::{
-    arrow::datatypes::SchemaRef,
-    parquet::arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder},
-};
 use http::HeaderMap;
 use metrics::{counter, histogram};
+use parquet::arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder};
 use rustfs_filemeta::FileInfo;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};

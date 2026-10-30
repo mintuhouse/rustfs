@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -509,6 +510,7 @@ pub(crate) fn validate_object_lock_configuration_input(input_cfg: &ObjectLockCon
 #[async_trait::async_trait]
 impl S3 for FS {
     #[instrument(level = "debug", skip(self))]
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn abort_multipart_upload(
         &self,
         req: S3Request<AbortMultipartUploadInput>,
@@ -518,6 +520,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self, req))]
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn complete_multipart_upload(
         &self,
         req: S3Request<CompleteMultipartUploadInput>,
@@ -529,6 +532,7 @@ impl S3 for FS {
 
     /// Copy an object from one location to another
     #[instrument(level = "debug", skip(self, req))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn copy_object(&self, req: S3Request<CopyObjectInput>) -> S3Result<S3Response<CopyObjectOutput>> {
         let usecase = s3_api::object_usecase_for(self);
         usecase.execute_copy_object(req).await
@@ -545,6 +549,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self, req))]
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn create_multipart_upload(
         &self,
         req: S3Request<CreateMultipartUploadInput>,
@@ -562,11 +567,13 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_cors(&self, req: S3Request<DeleteBucketCorsInput>) -> S3Result<S3Response<DeleteBucketCorsOutput>> {
         let usecase = s3_api::bucket_usecase_for(self);
         usecase.execute_delete_bucket_cors(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_encryption(
         &self,
         req: S3Request<DeleteBucketEncryptionInput>,
@@ -576,6 +583,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_lifecycle(
         &self,
         req: S3Request<DeleteBucketLifecycleInput>,
@@ -584,6 +592,7 @@ impl S3 for FS {
         usecase.execute_delete_bucket_lifecycle(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_policy(
         &self,
         req: S3Request<DeleteBucketPolicyInput>,
@@ -592,6 +601,7 @@ impl S3 for FS {
         usecase.execute_delete_bucket_policy(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_replication(
         &self,
         req: S3Request<DeleteBucketReplicationInput>,
@@ -603,6 +613,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_tagging(
         &self,
         req: S3Request<DeleteBucketTaggingInput>,
@@ -611,6 +622,7 @@ impl S3 for FS {
         usecase.execute_delete_bucket_tagging(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_bucket_website(
         &self,
         req: S3Request<DeleteBucketWebsiteInput>,
@@ -633,6 +645,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_public_access_block(
         &self,
         req: S3Request<DeletePublicAccessBlockInput>,
@@ -650,6 +663,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn delete_object_tagging(
         &self,
         req: S3Request<DeleteObjectTaggingInput>,
@@ -777,6 +791,7 @@ impl S3 for FS {
         usecase.execute_delete_objects(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_acl(&self, req: S3Request<GetBucketAclInput>) -> S3Result<S3Response<GetBucketAclOutput>> {
         record_s3_op(S3Operation::GetBucketAcl);
         let GetBucketAclInput { bucket, .. } = req.input;
@@ -793,6 +808,7 @@ impl S3 for FS {
         Ok(S3Response::new(acl::build_get_bucket_acl_output()))
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_accelerate_configuration(
         &self,
         req: S3Request<GetBucketAccelerateConfigurationInput>,
@@ -817,12 +833,14 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_cors(&self, req: S3Request<GetBucketCorsInput>) -> S3Result<S3Response<GetBucketCorsOutput>> {
         record_s3_op(S3Operation::GetBucketCors);
         let usecase = s3_api::bucket_usecase_for(self);
         usecase.execute_get_bucket_cors(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_encryption(
         &self,
         req: S3Request<GetBucketEncryptionInput>,
@@ -833,6 +851,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_lifecycle_configuration(
         &self,
         req: S3Request<GetBucketLifecycleConfigurationInput>,
@@ -850,6 +869,7 @@ impl S3 for FS {
         usecase.execute_get_bucket_location(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_notification_configuration(
         &self,
         req: S3Request<GetBucketNotificationConfigurationInput>,
@@ -859,12 +879,14 @@ impl S3 for FS {
         usecase.execute_get_bucket_notification_configuration(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_policy(&self, req: S3Request<GetBucketPolicyInput>) -> S3Result<S3Response<GetBucketPolicyOutput>> {
         record_s3_op(S3Operation::GetBucketPolicy);
         let usecase = s3_api::bucket_usecase_for(self);
         usecase.execute_get_bucket_policy(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_policy_status(
         &self,
         req: S3Request<GetBucketPolicyStatusInput>,
@@ -874,6 +896,7 @@ impl S3 for FS {
         usecase.execute_get_bucket_policy_status(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_replication(
         &self,
         req: S3Request<GetBucketReplicationInput>,
@@ -883,6 +906,7 @@ impl S3 for FS {
         usecase.execute_get_bucket_replication(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_request_payment(
         &self,
         req: S3Request<GetBucketRequestPaymentInput>,
@@ -908,6 +932,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_tagging(&self, req: S3Request<GetBucketTaggingInput>) -> S3Result<S3Response<GetBucketTaggingOutput>> {
         record_s3_op(S3Operation::GetBucketTagging);
         let usecase = s3_api::bucket_usecase_for(self);
@@ -915,6 +940,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_public_access_block(
         &self,
         req: S3Request<GetPublicAccessBlockInput>,
@@ -925,6 +951,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_versioning(
         &self,
         req: S3Request<GetBucketVersioningInput>,
@@ -934,6 +961,7 @@ impl S3 for FS {
         usecase.execute_get_bucket_versioning(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_website(&self, req: S3Request<GetBucketWebsiteInput>) -> S3Result<S3Response<GetBucketWebsiteOutput>> {
         let Some(store) = self.server_ctx.object_store() else {
             return Err(s3_error!(InternalError, "Not init"));
@@ -968,6 +996,7 @@ impl S3 for FS {
         usecase.execute_get_object(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_acl(&self, req: S3Request<GetObjectAclInput>) -> S3Result<S3Response<GetObjectAclOutput>> {
         record_s3_op(S3Operation::GetObjectAcl);
         let GetObjectAclInput {
@@ -986,6 +1015,7 @@ impl S3 for FS {
         Ok(S3Response::new(acl::build_get_object_acl_output()))
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_attributes(
         &self,
         req: S3Request<GetObjectAttributesInput>,
@@ -994,6 +1024,7 @@ impl S3 for FS {
         usecase.execute_get_object_attributes(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_legal_hold(
         &self,
         req: S3Request<GetObjectLegalHoldInput>,
@@ -1058,6 +1089,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_lock_configuration(
         &self,
         req: S3Request<GetObjectLockConfigurationInput>,
@@ -1103,6 +1135,7 @@ impl S3 for FS {
         }))
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_retention(
         &self,
         req: S3Request<GetObjectRetentionInput>,
@@ -1148,6 +1181,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_tagging(&self, req: S3Request<GetObjectTaggingInput>) -> S3Result<S3Response<GetObjectTaggingOutput>> {
         use crate::storage::storage_api::ecstore_bucket::versioning::VersioningApi as _;
 
@@ -1252,6 +1286,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self, _req))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_object_torrent(&self, _req: S3Request<GetObjectTorrentInput>) -> S3Result<S3Response<GetObjectTorrentOutput>> {
         // Torrent functionality is not implemented in RustFS
         // Per S3 API test expectations, return 404 NoSuchKey (not 501 Not Implemented)
@@ -1281,6 +1316,7 @@ impl S3 for FS {
         usecase.execute_list_buckets(req).await
     }
 
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn list_multipart_uploads(
         &self,
         req: S3Request<ListMultipartUploadsInput>,
@@ -1290,6 +1326,7 @@ impl S3 for FS {
         usecase.execute_list_multipart_uploads(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn list_object_versions(
         &self,
         req: S3Request<ListObjectVersionsInput>,
@@ -1315,12 +1352,14 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self, req))]
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn list_parts(&self, req: S3Request<ListPartsInput>) -> S3Result<S3Response<ListPartsOutput>> {
         record_s3_op(S3Operation::ListParts);
         let usecase = s3_api::multipart_usecase_for(self);
         usecase.execute_list_parts(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_acl(&self, req: S3Request<PutBucketAclInput>) -> S3Result<S3Response<PutBucketAclOutput>> {
         let PutBucketAclInput {
             bucket,
@@ -1348,6 +1387,7 @@ impl S3 for FS {
         Ok(S3Response::new(PutBucketAclOutput::default()))
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_accelerate_configuration(
         &self,
         req: S3Request<PutBucketAccelerateConfigurationInput>,
@@ -1376,11 +1416,13 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_cors(&self, req: S3Request<PutBucketCorsInput>) -> S3Result<S3Response<PutBucketCorsOutput>> {
         let usecase = s3_api::bucket_usecase_for(self);
         usecase.execute_put_bucket_cors(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn get_bucket_logging(&self, req: S3Request<GetBucketLoggingInput>) -> S3Result<S3Response<GetBucketLoggingOutput>> {
         record_s3_op(S3Operation::GetBucketLogging);
         let Some(store) = self.server_ctx.object_store() else {
@@ -1400,6 +1442,7 @@ impl S3 for FS {
         }
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_logging(&self, req: S3Request<PutBucketLoggingInput>) -> S3Result<S3Response<PutBucketLoggingOutput>> {
         let expected_incarnation_id = bucket_config_mutation_incarnation(&req, &req.input.bucket)?;
         record_s3_op(S3Operation::PutBucketLogging);
@@ -1425,6 +1468,7 @@ impl S3 for FS {
         Ok(S3Response::new(PutBucketLoggingOutput::default()))
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_encryption(
         &self,
         req: S3Request<PutBucketEncryptionInput>,
@@ -1434,6 +1478,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_lifecycle_configuration(
         &self,
         req: S3Request<PutBucketLifecycleConfigurationInput>,
@@ -1442,6 +1487,7 @@ impl S3 for FS {
         usecase.execute_put_bucket_lifecycle_configuration(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_notification_configuration(
         &self,
         req: S3Request<PutBucketNotificationConfigurationInput>,
@@ -1450,11 +1496,13 @@ impl S3 for FS {
         usecase.execute_put_bucket_notification_configuration(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_policy(&self, req: S3Request<PutBucketPolicyInput>) -> S3Result<S3Response<PutBucketPolicyOutput>> {
         let usecase = s3_api::bucket_usecase_for(self);
         usecase.execute_put_bucket_policy(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_replication(
         &self,
         req: S3Request<PutBucketReplicationInput>,
@@ -1465,6 +1513,7 @@ impl S3 for FS {
         usecase.execute_put_bucket_replication(req, site_peers, contract).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_request_payment(
         &self,
         req: S3Request<PutBucketRequestPaymentInput>,
@@ -1493,6 +1542,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_public_access_block(
         &self,
         req: S3Request<PutPublicAccessBlockInput>,
@@ -1502,12 +1552,14 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_tagging(&self, req: S3Request<PutBucketTaggingInput>) -> S3Result<S3Response<PutBucketTaggingOutput>> {
         let usecase = s3_api::bucket_usecase_for(self);
         usecase.execute_put_bucket_tagging(req).await
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_versioning(
         &self,
         req: S3Request<PutBucketVersioningInput>,
@@ -1516,6 +1568,7 @@ impl S3 for FS {
         usecase.execute_put_bucket_versioning(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_bucket_website(&self, req: S3Request<PutBucketWebsiteInput>) -> S3Result<S3Response<PutBucketWebsiteOutput>> {
         let expected_incarnation_id = bucket_config_mutation_incarnation(&req, &req.input.bucket)?;
         let Some(store) = self.server_ctx.object_store() else {
@@ -1549,6 +1602,7 @@ impl S3 for FS {
         usecase.execute_put_object(self, req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_acl(&self, req: S3Request<PutObjectAclInput>) -> S3Result<S3Response<PutObjectAclOutput>> {
         let mut helper = OperationHelper::new(&req, EventName::ObjectAclPut, S3Operation::PutObjectAcl);
         let bucket = &req.input.bucket;
@@ -1581,6 +1635,7 @@ impl S3 for FS {
         result
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_legal_hold(
         &self,
         req: S3Request<PutObjectLegalHoldInput>,
@@ -1677,6 +1732,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_lock_configuration(
         &self,
         req: S3Request<PutObjectLockConfigurationInput>,
@@ -1783,6 +1839,7 @@ impl S3 for FS {
         Ok(S3Response::new(PutObjectLockConfigurationOutput::default()))
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_retention(
         &self,
         req: S3Request<PutObjectRetentionInput>,
@@ -1904,6 +1961,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self, req))]
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn put_object_tagging(&self, req: S3Request<PutObjectTaggingInput>) -> S3Result<S3Response<PutObjectTaggingOutput>> {
         let start_time = std::time::Instant::now();
         let mut helper = OperationHelper::new(&req, EventName::ObjectTaggingPut, S3Operation::PutObjectTagging);
@@ -2019,11 +2077,13 @@ impl S3 for FS {
         result
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn restore_object(&self, req: S3Request<RestoreObjectInput>) -> S3Result<S3Response<RestoreObjectOutput>> {
         let usecase = s3_api::object_usecase_for(self);
         usecase.execute_restore_object(req).await
     }
 
+    #[cfg(not(feature = "single-node-narrow"))]
     async fn select_object_content(
         &self,
         req: S3Request<SelectObjectContentInput>,
@@ -2033,6 +2093,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self, req))]
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn upload_part(&self, req: S3Request<UploadPartInput>) -> S3Result<S3Response<UploadPartOutput>> {
         crate::hp_guard!("S3::upload_part");
         record_s3_op(S3Operation::UploadPart);
@@ -2041,6 +2102,7 @@ impl S3 for FS {
     }
 
     #[instrument(level = "debug", skip(self, req))]
+    #[cfg(any(not(feature = "single-node-narrow"), feature = "single-node-multipart"))]
     async fn upload_part_copy(&self, req: S3Request<UploadPartCopyInput>) -> S3Result<S3Response<UploadPartCopyOutput>> {
         record_s3_op(S3Operation::UploadPartCopy);
         let usecase = s3_api::multipart_usecase_for(self);

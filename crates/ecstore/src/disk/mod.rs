@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -227,6 +228,7 @@ pub struct MmapCopyStageMetrics {
 #[derive(Debug)]
 pub enum Disk {
     Local(Box<LocalDiskWrapper>),
+    #[cfg(any(not(feature = "local-only"), test))]
     Remote(Box<RemoteDisk>),
 }
 
@@ -243,6 +245,7 @@ impl Disk {
                 disk.delete_versions_with_namespace_owner(volume, versions, opts, namespace_owner)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => {
                 let _owner = namespace_owner;
                 disk.delete_versions(volume, versions, opts).await
@@ -269,6 +272,7 @@ impl Disk {
                 disk.delete_versions_with_namespace_owner(volume, versions, opts, namespace_owner)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => {
                 let _owner = namespace_owner;
                 disk.delete_versions_recoverable(volume, versions, opts).await
@@ -297,6 +301,7 @@ impl Disk {
                 )
                 .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => {
                 let _owner = namespace_owner;
                 disk.settle_delete_transaction(volume, object, transaction, expected_fingerprint, action)
@@ -324,6 +329,7 @@ impl Disk {
                 disk.delete_version_with_namespace_owner(volume, path, fi, force_del_marker, opts, namespace_owner)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => {
                 disk.delete_version_recoverable(volume, path, fi, force_del_marker, opts)
                     .await
@@ -336,6 +342,7 @@ impl Disk {
                 local_disk.set_disk_id_state(id).await;
                 Ok(())
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.set_disk_id(id).await,
         }
     }
@@ -343,6 +350,7 @@ impl Disk {
     pub(crate) fn local_health_tracker_epoch_for_reconnect(&self) -> Option<disk_store::ReconnectDiskHealthState> {
         match self {
             Disk::Local(local_disk) => Some(local_disk.health_tracker_epoch_for_reconnect()),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(_) => None,
         }
     }
@@ -350,6 +358,7 @@ impl Disk {
     pub(crate) async fn cached_disk_id(&self) -> Option<Uuid> {
         match self {
             Disk::Local(local_disk) => local_disk.get_current_disk_id().await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.get_disk_id().await.ok().flatten(),
         }
     }
@@ -376,6 +385,7 @@ impl DiskAPI for Disk {
     ) -> Vec<Option<DiskError>> {
         match self {
             Self::Local(disk) => disk.delete_versions_recoverable(volume, versions, opts).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => disk.delete_versions_recoverable(volume, versions, opts).await,
         }
     }
@@ -388,6 +398,7 @@ impl DiskAPI for Disk {
     ) -> Result<DeleteRecoveryPage> {
         match self {
             Self::Local(disk) => disk.discover_delete_transactions(volume, object, cursor, limit).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => disk.discover_delete_transactions(volume, object, cursor, limit).await,
         }
     }
@@ -399,6 +410,7 @@ impl DiskAPI for Disk {
     ) -> Result<DeleteRecoveryInspection> {
         match self {
             Self::Local(disk) => disk.inspect_delete_transaction(volume, object, transaction).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => disk.inspect_delete_transaction(volume, object, transaction).await,
         }
     }
@@ -415,6 +427,7 @@ impl DiskAPI for Disk {
                 disk.settle_delete_transaction(volume, object, transaction, expected_fingerprint, action)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => {
                 disk.settle_delete_transaction(volume, object, transaction, expected_fingerprint, action)
                     .await
@@ -424,6 +437,7 @@ impl DiskAPI for Disk {
     fn to_string(&self) -> String {
         match self {
             Disk::Local(local_disk) => local_disk.to_string(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.to_string(),
         }
     }
@@ -431,6 +445,7 @@ impl DiskAPI for Disk {
     async fn is_online(&self) -> bool {
         match self {
             Disk::Local(local_disk) => local_disk.is_online().await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.is_online().await,
         }
     }
@@ -438,6 +453,7 @@ impl DiskAPI for Disk {
     fn is_local(&self) -> bool {
         match self {
             Disk::Local(local_disk) => local_disk.is_local(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.is_local(),
         }
     }
@@ -445,6 +461,7 @@ impl DiskAPI for Disk {
     fn host_name(&self) -> String {
         match self {
             Disk::Local(local_disk) => local_disk.host_name(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.host_name(),
         }
     }
@@ -452,6 +469,7 @@ impl DiskAPI for Disk {
     fn endpoint(&self) -> Endpoint {
         match self {
             Disk::Local(local_disk) => local_disk.endpoint(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.endpoint(),
         }
     }
@@ -459,6 +477,7 @@ impl DiskAPI for Disk {
     async fn close(&self) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.close().await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.close().await,
         }
     }
@@ -466,6 +485,7 @@ impl DiskAPI for Disk {
     async fn get_disk_id(&self) -> Result<Option<Uuid>> {
         match self {
             Disk::Local(local_disk) => local_disk.get_disk_id().await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.get_disk_id().await,
         }
     }
@@ -473,6 +493,7 @@ impl DiskAPI for Disk {
     async fn set_disk_id(&self, id: Option<Uuid>) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.set_disk_id(id).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.set_disk_id(id).await,
         }
     }
@@ -480,6 +501,7 @@ impl DiskAPI for Disk {
     fn path(&self) -> PathBuf {
         match self {
             Disk::Local(local_disk) => local_disk.path(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.path(),
         }
     }
@@ -487,6 +509,7 @@ impl DiskAPI for Disk {
     fn get_disk_location(&self) -> DiskLocation {
         match self {
             Disk::Local(local_disk) => local_disk.get_disk_location(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.get_disk_location(),
         }
     }
@@ -495,6 +518,7 @@ impl DiskAPI for Disk {
     async fn make_volume(&self, volume: &str) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.make_volume(volume).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.make_volume(volume).await,
         }
     }
@@ -503,6 +527,7 @@ impl DiskAPI for Disk {
     async fn make_volumes(&self, volumes: Vec<&str>) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.make_volumes(volumes).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.make_volumes(volumes).await,
         }
     }
@@ -511,6 +536,7 @@ impl DiskAPI for Disk {
     async fn list_volumes(&self) -> Result<Vec<VolumeInfo>> {
         match self {
             Disk::Local(local_disk) => local_disk.list_volumes().await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.list_volumes().await,
         }
     }
@@ -518,6 +544,7 @@ impl DiskAPI for Disk {
     async fn stat_volume(&self, volume: &str) -> Result<VolumeInfo> {
         match self {
             Disk::Local(local_disk) => local_disk.stat_volume(volume).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.stat_volume(volume).await,
         }
     }
@@ -526,6 +553,7 @@ impl DiskAPI for Disk {
     async fn delete_volume(&self, volume: &str, force_delete: bool) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.delete_volume(volume, force_delete).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.delete_volume(volume, force_delete).await,
         }
     }
@@ -534,6 +562,7 @@ impl DiskAPI for Disk {
     async fn walk_dir<W: AsyncWrite + Unpin + Send>(&self, opts: WalkDirOptions, wr: &mut W) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.walk_dir(opts, wr).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.walk_dir(opts, wr).await,
         }
     }
@@ -557,6 +586,7 @@ impl DiskAPI for Disk {
         }
         match self {
             Disk::Local(local_disk) => local_disk.delete_version(volume, path, fi, force_del_marker, opts).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.delete_version(volume, path, fi, force_del_marker, opts).await,
         }
     }
@@ -565,6 +595,7 @@ impl DiskAPI for Disk {
     async fn delete_versions(&self, volume: &str, versions: Vec<FileInfoVersions>, opts: DeleteOptions) -> Vec<Option<Error>> {
         match self {
             Disk::Local(local_disk) => local_disk.delete_versions(volume, versions, opts).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.delete_versions(volume, versions, opts).await,
         }
     }
@@ -573,6 +604,7 @@ impl DiskAPI for Disk {
     async fn delete_paths(&self, volume: &str, paths: &[String]) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.delete_paths(volume, paths).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.delete_paths(volume, paths).await,
         }
     }
@@ -580,6 +612,7 @@ impl DiskAPI for Disk {
     async fn acquire_snapshot_lease(&self, volume: &str, path: &str) -> Result<SnapshotLeaseToken> {
         match self {
             Disk::Local(local_disk) => local_disk.acquire_snapshot_lease(volume, path).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.acquire_snapshot_lease(volume, path).await,
         }
     }
@@ -587,6 +620,7 @@ impl DiskAPI for Disk {
     async fn release_snapshot_lease(&self, volume: &str, path: &str, token: SnapshotLeaseToken) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.release_snapshot_lease(volume, path, token).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.release_snapshot_lease(volume, path, token).await,
         }
     }
@@ -594,6 +628,7 @@ impl DiskAPI for Disk {
     async fn renew_snapshot_lease(&self, volume: &str, path: &str, token: SnapshotLeaseToken) -> Result<SnapshotLeaseToken> {
         match self {
             Disk::Local(local_disk) => local_disk.renew_snapshot_lease(volume, path, token).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.renew_snapshot_lease(volume, path, token).await,
         }
     }
@@ -601,6 +636,7 @@ impl DiskAPI for Disk {
     async fn delete_data_dir(&self, volume: &str, path: &str, opts: DeleteOptions) -> Result<DataDirDeleteStatus> {
         match self {
             Disk::Local(local_disk) => local_disk.delete_data_dir(volume, path, opts).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.delete_data_dir(volume, path, opts).await,
         }
     }
@@ -609,6 +645,7 @@ impl DiskAPI for Disk {
     async fn write_metadata(&self, _org_volume: &str, volume: &str, path: &str, fi: FileInfo) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.write_metadata(_org_volume, volume, path, fi).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.write_metadata(_org_volume, volume, path, fi).await,
         }
     }
@@ -617,6 +654,7 @@ impl DiskAPI for Disk {
     async fn update_metadata(&self, volume: &str, path: &str, fi: FileInfo, opts: &UpdateMetadataOpts) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.update_metadata(volume, path, fi, opts).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.update_metadata(volume, path, fi, opts).await,
         }
     }
@@ -632,6 +670,7 @@ impl DiskAPI for Disk {
     ) -> Result<FileInfo> {
         match self {
             Disk::Local(local_disk) => local_disk.read_version(_org_volume, volume, path, version_id, opts).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_version(_org_volume, volume, path, version_id, opts).await,
         }
     }
@@ -640,6 +679,7 @@ impl DiskAPI for Disk {
     async fn batch_read_version(&self, req: BatchReadVersionReq) -> Result<Vec<BatchReadVersionResp>> {
         match self {
             Disk::Local(local_disk) => local_disk.batch_read_version(req).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.batch_read_version(req).await,
         }
     }
@@ -648,6 +688,7 @@ impl DiskAPI for Disk {
     async fn read_xl(&self, volume: &str, path: &str, read_data: bool) -> Result<RawFileInfo> {
         match self {
             Disk::Local(local_disk) => local_disk.read_xl(volume, path, read_data).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_xl(volume, path, read_data).await,
         }
     }
@@ -669,6 +710,7 @@ impl DiskAPI for Disk {
     async fn list_dir(&self, _origvolume: &str, volume: &str, dir_path: &str, count: i32) -> Result<Vec<String>> {
         match self {
             Disk::Local(local_disk) => local_disk.list_dir(_origvolume, volume, dir_path, count).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.list_dir(_origvolume, volume, dir_path, count).await,
         }
     }
@@ -677,6 +719,7 @@ impl DiskAPI for Disk {
     async fn read_file(&self, volume: &str, path: &str) -> Result<FileReader> {
         match self {
             Disk::Local(local_disk) => local_disk.read_file(volume, path).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_file(volume, path).await,
         }
     }
@@ -685,6 +728,7 @@ impl DiskAPI for Disk {
     async fn read_file_stream(&self, volume: &str, path: &str, offset: usize, length: usize) -> Result<FileReader> {
         match self {
             Disk::Local(local_disk) => local_disk.read_file_stream(volume, path, offset, length).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_file_stream(volume, path, offset, length).await,
         }
     }
@@ -698,6 +742,7 @@ impl DiskAPI for Disk {
     ) -> Result<Option<ChunkReaderBox>> {
         match self {
             Disk::Local(_) => Ok(None),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_file_stream_chunks(volume, path, offset, length).await,
         }
     }
@@ -706,6 +751,7 @@ impl DiskAPI for Disk {
     async fn read_file_mmap_copy(&self, volume: &str, path: &str, offset: usize, length: usize) -> Result<Bytes> {
         match self {
             Disk::Local(local_disk) => local_disk.read_file_mmap_copy(volume, path, offset, length).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_file_mmap_copy(volume, path, offset, length).await,
         }
     }
@@ -724,6 +770,7 @@ impl DiskAPI for Disk {
                     .read_file_mmap_copy_with_metrics(volume, path, offset, length, metrics)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_file_mmap_copy(volume, path, offset, length).await,
         }
     }
@@ -732,6 +779,7 @@ impl DiskAPI for Disk {
     async fn append_file(&self, volume: &str, path: &str) -> Result<FileWriter> {
         match self {
             Disk::Local(local_disk) => local_disk.append_file(volume, path).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.append_file(volume, path).await,
         }
     }
@@ -740,6 +788,7 @@ impl DiskAPI for Disk {
     async fn create_file(&self, _origvolume: &str, volume: &str, path: &str, _file_size: i64) -> Result<FileWriter> {
         match self {
             Disk::Local(local_disk) => local_disk.create_file(_origvolume, volume, path, _file_size).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.create_file(_origvolume, volume, path, _file_size).await,
         }
     }
@@ -748,6 +797,7 @@ impl DiskAPI for Disk {
     async fn rename_file(&self, src_volume: &str, src_path: &str, dst_volume: &str, dst_path: &str) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.rename_file(src_volume, src_path, dst_volume, dst_path).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.rename_file(src_volume, src_path, dst_volume, dst_path).await,
         }
     }
@@ -756,6 +806,7 @@ impl DiskAPI for Disk {
     async fn read_parts(&self, bucket: &str, paths: &[String]) -> Result<Vec<ObjectPartInfo>> {
         match self {
             Disk::Local(local_disk) => local_disk.read_parts(bucket, paths).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_parts(bucket, paths).await,
         }
     }
@@ -763,6 +814,7 @@ impl DiskAPI for Disk {
     async fn rename_file_durable(&self, src_volume: &str, src_path: &str, dst_volume: &str, dst_path: &str) -> Result<()> {
         match self {
             Disk::Local(disk) => disk.rename_file_durable(src_volume, src_path, dst_volume, dst_path).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(disk) => disk.rename_file_durable(src_volume, src_path, dst_volume, dst_path).await,
         }
     }
@@ -771,6 +823,7 @@ impl DiskAPI for Disk {
     async fn rename_part(&self, src_volume: &str, src_path: &str, dst_volume: &str, dst_path: &str, meta: Bytes) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.rename_part(src_volume, src_path, dst_volume, dst_path, meta).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => {
                 remote_disk
                     .rename_part(src_volume, src_path, dst_volume, dst_path, meta)
@@ -793,6 +846,7 @@ impl DiskAPI for Disk {
                     .prepare_part_transaction(src_volume, src_path, dst_volume, dst_path, meta)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => {
                 remote_disk
                     .prepare_part_transaction(src_volume, src_path, dst_volume, dst_path, meta)
@@ -804,6 +858,7 @@ impl DiskAPI for Disk {
     async fn settle_part_transaction(&self, volume: &str, path: &str, action: PartTransactionAction) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.settle_part_transaction(volume, path, action).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.settle_part_transaction(volume, path, action).await,
         }
     }
@@ -818,6 +873,7 @@ impl DiskAPI for Disk {
         }
         match self {
             Disk::Local(local_disk) => local_disk.delete(volume, path, opt).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.delete(volume, path, opt).await,
         }
     }
@@ -826,6 +882,7 @@ impl DiskAPI for Disk {
     async fn verify_file(&self, volume: &str, path: &str, fi: &FileInfo) -> Result<CheckPartsResp> {
         match self {
             Disk::Local(local_disk) => local_disk.verify_file(volume, path, fi).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.verify_file(volume, path, fi).await,
         }
     }
@@ -834,6 +891,7 @@ impl DiskAPI for Disk {
     async fn check_parts(&self, volume: &str, path: &str, fi: &FileInfo) -> Result<CheckPartsResp> {
         match self {
             Disk::Local(local_disk) => local_disk.check_parts(volume, path, fi).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.check_parts(volume, path, fi).await,
         }
     }
@@ -842,6 +900,7 @@ impl DiskAPI for Disk {
     async fn read_multiple(&self, req: ReadMultipleReq) -> Result<Vec<ReadMultipleResp>> {
         match self {
             Disk::Local(local_disk) => local_disk.read_multiple(req).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_multiple(req).await,
         }
     }
@@ -850,6 +909,7 @@ impl DiskAPI for Disk {
     async fn write_all(&self, volume: &str, path: &str, data: Bytes) -> Result<()> {
         match self {
             Disk::Local(local_disk) => local_disk.write_all(volume, path, data).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.write_all(volume, path, data).await,
         }
     }
@@ -863,6 +923,7 @@ impl DiskAPI for Disk {
     ) -> Result<ConditionalFileUpdate> {
         match self {
             Disk::Local(local_disk) => local_disk.compare_and_update_file(volume, path, expected, replacement).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.compare_and_update_file(volume, path, expected, replacement).await,
         }
     }
@@ -870,6 +931,7 @@ impl DiskAPI for Disk {
     fn has_replacement_mount_lease(&self) -> bool {
         match self {
             Disk::Local(local_disk) => local_disk.has_replacement_mount_lease(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.has_replacement_mount_lease(),
         }
     }
@@ -878,6 +940,7 @@ impl DiskAPI for Disk {
     async fn read_all(&self, volume: &str, path: &str) -> Result<Bytes> {
         match self {
             Disk::Local(local_disk) => local_disk.read_all(volume, path).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_all(volume, path).await,
         }
     }
@@ -886,6 +949,7 @@ impl DiskAPI for Disk {
     async fn disk_info(&self, opts: &DiskInfoOptions) -> Result<DiskInfo> {
         match self {
             Disk::Local(local_disk) => local_disk.disk_info(opts).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.disk_info(opts).await,
         }
     }
@@ -893,6 +957,7 @@ impl DiskAPI for Disk {
     fn start_scan(&self) -> ScanGuard {
         match self {
             Disk::Local(local_disk) => local_disk.start_scan(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.start_scan(),
         }
     }
@@ -900,6 +965,7 @@ impl DiskAPI for Disk {
     async fn read_metadata(&self, volume: &str, path: &str) -> Result<Bytes> {
         match self {
             Disk::Local(local_disk) => local_disk.read_metadata(volume, path).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.read_metadata(volume, path).await,
         }
     }
@@ -920,6 +986,7 @@ impl Disk {
                     .delete_with_publication_guard(volume, path, opts, external_guard)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => {
                 remote_disk
                     .delete_with_scanner_publication_lease(volume, path, opts, scanner_publication_lease_token)
@@ -942,6 +1009,7 @@ impl Disk {
                 disk.delete_version_with_namespace_owner(volume, path, fi, force_del_marker, opts, namespace_owner)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => {
                 let result = disk.delete_version(volume, path, fi, force_del_marker, opts).await;
                 // This is sender lifetime only, not proof of a remote physical drain.
@@ -960,6 +1028,7 @@ impl Disk {
     ) -> Result<()> {
         match self {
             Self::Local(disk) => disk.delete_with_namespace_owner(volume, path, opts, namespace_owner).await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => {
                 let result = disk.delete(volume, path, opts).await;
                 drop(namespace_owner);
@@ -983,6 +1052,7 @@ impl Disk {
                 disk.undo_write_with_namespace_owner(volume, path, fi, opts, namespace_owner)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(disk) => disk.delete_version(volume, path, fi, false, opts).await,
         }
     }
@@ -1020,6 +1090,7 @@ impl Disk {
                     .rename_data_observed_with_guards(src_volume, src_path, fi, dst_volume, dst_path, guards)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => RenameDataObservation::unknown(
                 remote_disk
                     .rename_data_borrowed_with_fence(
@@ -1073,6 +1144,7 @@ impl Disk {
                     .rename_data_borrowed_with_guard(src_volume, src_path, fi, dst_volume, dst_path, external_guard)
                     .await
             }
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => {
                 remote_disk
                     .rename_data_borrowed_with_fence(
@@ -1093,12 +1165,14 @@ impl Disk {
     pub async fn ns_scanner_server_epoch(&self) -> Result<Option<Uuid>> {
         match self {
             Disk::Local(_) => Ok(None),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.ns_scanner_server_epoch().await,
         }
     }
 
     pub async fn open_ns_scanner_stream(&self, request: NsScannerOpenRequest) -> Result<FileReader> {
         match self {
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.open_ns_scanner_stream(request).await,
             Disk::Local(_) => Err(Error::other("namespace scanner stream requires a remote disk")),
         }
@@ -1107,6 +1181,7 @@ impl Disk {
     pub fn runtime_state(&self) -> RuntimeDriveHealthState {
         match self {
             Disk::Local(local_disk) => local_disk.runtime_state(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.runtime_state(),
         }
     }
@@ -1114,6 +1189,7 @@ impl Disk {
     pub fn offline_duration_secs(&self) -> Option<u64> {
         match self {
             Disk::Local(local_disk) => local_disk.offline_duration_secs(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.offline_duration_secs(),
         }
     }
@@ -1121,6 +1197,7 @@ impl Disk {
     pub fn last_capacity_snapshot(&self) -> Option<(u64, u64, u64, u64)> {
         match self {
             Disk::Local(local_disk) => local_disk.last_capacity_snapshot(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.last_capacity_snapshot(),
         }
     }
@@ -1128,6 +1205,7 @@ impl Disk {
     pub fn metrics_snapshot(&self) -> Option<DiskMetrics> {
         match self {
             Disk::Local(local_disk) => Some(local_disk.metrics_snapshot()),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(_) => None,
         }
     }
@@ -1136,6 +1214,7 @@ impl Disk {
     pub fn health_check_enabled_for_test(&self) -> bool {
         match self {
             Disk::Local(local_disk) => local_disk.health_check_enabled_for_test(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.health_check_enabled_for_test(),
         }
     }
@@ -1143,6 +1222,7 @@ impl Disk {
     pub fn record_capacity_probe(&self, total: u64, used: u64, free: u64) {
         match self {
             Disk::Local(local_disk) => local_disk.record_capacity_probe(total, used, free),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.record_capacity_probe(total, used, free),
         }
     }
@@ -1151,6 +1231,7 @@ impl Disk {
     pub fn force_runtime_state_for_test(&self, state: RuntimeDriveHealthState) {
         match self {
             Disk::Local(local_disk) => local_disk.force_runtime_state_for_test(state),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.force_runtime_state_for_test(state),
         }
     }
@@ -1159,6 +1240,7 @@ impl Disk {
     pub fn force_offline_for_test(&self) {
         match self {
             Disk::Local(local_disk) => local_disk.force_offline_for_test(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.force_offline_for_test(),
         }
     }
@@ -1182,6 +1264,7 @@ impl Disk {
     pub fn reset_health_for_store_init_retry(&self) {
         match self {
             Disk::Local(local_disk) => local_disk.reset_health_for_store_init_retry(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.reset_health_for_store_init_retry(),
         }
     }
@@ -1192,6 +1275,7 @@ impl Disk {
     pub fn enable_health_check(&self) {
         match self {
             Disk::Local(local_disk) => local_disk.enable_health_check(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(remote_disk) => remote_disk.enable_health_check(),
         }
     }
@@ -1201,6 +1285,7 @@ impl Disk {
     pub fn get_object_path_if_local(&self, volume: &str, path: &str) -> Option<crate::disk::error::Result<std::path::PathBuf>> {
         match self {
             Disk::Local(w) => Some(w.get_object_path_if_local(volume, path)),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(_) => None,
         }
     }
@@ -1213,6 +1298,7 @@ impl Disk {
     ) -> Option<crate::disk::error::Result<std::path::PathBuf>> {
         match self {
             Disk::Local(w) => Some(w.get_object_path_for_io(volume, path)),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(_) => None,
         }
     }
@@ -1220,6 +1306,7 @@ impl Disk {
     pub(crate) fn get_bucket_path_for_io_if_local(&self, volume: &str) -> Option<crate::disk::error::Result<std::path::PathBuf>> {
         match self {
             Disk::Local(w) => Some(w.get_bucket_path_for_io(volume)),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(_) => None,
         }
     }
@@ -1230,6 +1317,7 @@ impl Disk {
     pub fn replacement_mount_lease_root(&self) -> Option<PathBuf> {
         match self {
             Disk::Local(local_disk) => local_disk.replacement_mount_lease_root(),
+            #[cfg(any(not(feature = "local-only"), test))]
             Disk::Remote(_) => None,
         }
     }
@@ -1237,6 +1325,7 @@ impl Disk {
     pub async fn acquire_replacement_execution_lease(&self) -> Result<std::sync::Arc<local::ReplacementExecutionLease>> {
         match self {
             Self::Local(disk) => disk.get_disk().acquire_replacement_execution_lease().await,
+            #[cfg(any(not(feature = "local-only"), test))]
             Self::Remote(_) => Err(DiskError::other("replacement execution requires a local target")),
         }
     }
@@ -1259,9 +1348,14 @@ pub(crate) async fn new_disk_with_health_tracker(
             reconnect,
         )))))
     } else {
-        let data_transport = build_internode_data_transport_from_env();
-        let remote_disk = RemoteDisk::new(ep, opt, data_transport?).await?;
-        Ok(Arc::new(Disk::Remote(Box::new(remote_disk))))
+        #[cfg(not(feature = "local-only"))]
+        {
+            let data_transport = build_internode_data_transport_from_env();
+            let remote_disk = RemoteDisk::new(ep, opt, data_transport?).await?;
+            Ok(Arc::new(Disk::Remote(Box::new(remote_disk))))
+        }
+        #[cfg(feature = "local-only")]
+        Err(DiskError::DiskNotFound)
     }
 }
 

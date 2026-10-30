@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,11 +34,13 @@ use rustfs_io_metrics::{
 use rustfs_kms::KmsServiceManager;
 use rustfs_lock::LockClient;
 use rustfs_notify::{EventArgs, NotificationError, notifier_global};
+#[cfg(feature = "s3-select")]
 use rustfs_s3select_api::{QueryResult, server::dbms::DatabaseManagerSystem};
 use rustfs_targets::{EventName, arn::TargetID};
 use rustfs_tls_runtime::{
     GlobalPublishedOutboundTlsState, TlsGeneration, load_global_outbound_tls_generation, load_global_outbound_tls_state,
 };
+#[cfg(any(feature = "s3-select", test))]
 use s3s::dto::SelectObjectContentInput;
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 use tokio::sync::RwLock;
@@ -151,6 +154,7 @@ pub fn internode_metrics() -> Arc<InternodeMetrics> {
     global_internode_metrics().clone()
 }
 
+#[cfg(feature = "s3-select")]
 pub async fn s3select_db(
     input: SelectObjectContentInput,
     enable_debug: bool,

@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +27,6 @@ pub(crate) use context::{
     AppContext, NotifyInterface, ServerContextSlot, default_notify_interface as fallback_notify_interface,
     default_object_data_cache_handle as fallback_object_data_cache_handle,
     default_outbound_tls_runtime_interface as fallback_outbound_tls_runtime_interface,
-    default_s3select_db_interface as fallback_s3select_db_interface,
     default_scanner_metrics_interface as fallback_scanner_metrics_interface,
     default_server_config_interface as fallback_server_config_interface,
     default_storage_class_interface as fallback_storage_class_interface, publish_server_config, publish_storage_class_config,
@@ -53,9 +53,8 @@ pub(crate) use context::{
     resolve_region as current_region, resolve_replication_pool_handle as current_replication_pool_handle,
     resolve_replication_stats_handle as current_replication_stats_handle,
     resolve_replication_stats_handle_with as current_replication_stats_handle_for_context,
-    resolve_runtime_port as current_runtime_port, resolve_s3select_db as current_s3select_db,
-    resolve_scanner_metrics_report as current_scanner_metrics_report, resolve_server_config as current_server_config,
-    resolve_server_config_for_context as current_server_config_for_context,
+    resolve_runtime_port as current_runtime_port, resolve_scanner_metrics_report as current_scanner_metrics_report,
+    resolve_server_config as current_server_config, resolve_server_config_for_context as current_server_config_for_context,
     resolve_tier_config_handle as current_tier_config_handle, resolve_token_signing_key as current_token_signing_key,
 };
 
@@ -187,3 +186,8 @@ mod tests {
         assert!(!capture_startup_publication(make_test_sys(vec![test_config("default")]), Some("  ")).is_empty());
     }
 }
+
+#[cfg(feature = "s3-select")]
+pub(crate) use context::{
+    default_s3select_db_interface as fallback_s3select_db_interface, resolve_s3select_db as current_s3select_db,
+};

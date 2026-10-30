@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +27,18 @@ pub(crate) mod object_data_cache;
 pub(crate) mod object_traffic_health;
 pub mod object_usecase;
 pub(crate) mod runtime_sources;
+#[cfg(feature = "s3-select")]
 mod select_object;
+#[cfg(not(feature = "s3-select"))]
+mod select_object {
+    use s3s::dto::{SelectObjectContentInput, SelectObjectContentOutput};
+    use s3s::{S3Request, S3Response, S3Result, s3_error};
+    pub async fn execute_select_object_content(
+        _: S3Request<SelectObjectContentInput>,
+    ) -> S3Result<S3Response<SelectObjectContentOutput>> {
+        Err(s3_error!(NotImplemented))
+    }
+}
 pub(crate) mod storage_api;
 pub(crate) mod table_list_isolation;
 pub(crate) mod trailer_adapter;

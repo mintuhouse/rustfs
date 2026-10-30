@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -414,6 +415,15 @@ impl ECStore {
         ctx: CancellationToken,
         instance_ctx: Arc<InstanceContext>,
     ) -> Result<Arc<Self>> {
+        #[cfg(feature = "local-only")]
+        if endpoint_pools.as_ref().len() != 1
+            || endpoint_pools
+                .as_ref()
+                .iter()
+                .any(|pool| pool.endpoints.as_ref().len() != 1 || pool.endpoints.as_ref().iter().any(|ep| !ep.is_local))
+        {
+            return Err(Error::other("local-only build requires one local disk"));
+        }
         instance_ctx.bind_background_cancel_token(ctx.clone());
 
         // let layouts = DisksLayout::from_volumes(endpoints.as_slice())?;
@@ -459,6 +469,7 @@ impl ECStore {
             port = %port,
             "Initializing ECStore host"
         );
+        #[cfg(not(feature = "local-only"))]
         init_local_peer(&endpoint_pools, &host, &port).await;
 
         // debug!("endpoint_pools: {:?}", endpoint_pools);
@@ -708,33 +719,22 @@ impl ECStore {
             *pool_meta = installed_pool_meta.clone();
         }
 
-        resolve_store_init_stage_result(self.load_rebalance_meta().await, "load_rebalance_meta")?;
-        let rebalance_resume_required = {
-            let rebalance_meta = self.rebalance_meta.read().await;
-            rebalance_meta
-                .as_ref()
-                .is_some_and(crate::services::rebalance::rebalance_requires_worker_activation)
-        };
-        let decommission_running =
-            pool_meta_has_active_decommission(&installed_pool_meta) || self.is_decommission_running().await;
-        let distributed = self.ctx.is_dist_erasure().await;
-        let fleet_proof_available = crate::services::notification_sys::acquire_cross_pool_fence_fleet_proof().is_some();
-        let mut rebalance_auto_start_deferred = false;
-        if should_auto_start_rebalance_after_init(decommission_running, rebalance_resume_required) {
-            if should_defer_rebalance_auto_start(distributed, fleet_proof_available) {
-                rebalance_auto_start_deferred = true;
-                warn!(
-                    event = EVENT_ECSTORE_INIT_STATUS,
-                    component = LOG_COMPONENT_ECSTORE,
-                    subsystem = LOG_SUBSYSTEM_STORE_INIT,
-                    stage = "start_rebalance",
-                    state = "deferred",
-                    reason = "fleet_capability_proof_unavailable",
-                    retry_delay_secs = REBALANCE_RESUME_RETRY_DELAY.as_secs(),
-                    "Deferred rebalance auto-start until a live fleet capability proof is available"
-                );
-            } else if let Err(err) = self.start_rebalance().await {
-                if crate::core::pools::is_pool_activation_fleet_proof_error(&err) {
+        #[cfg(not(feature = "local-only"))]
+        {
+            resolve_store_init_stage_result(self.load_rebalance_meta().await, "load_rebalance_meta")?;
+            let rebalance_resume_required = {
+                let rebalance_meta = self.rebalance_meta.read().await;
+                rebalance_meta
+                    .as_ref()
+                    .is_some_and(crate::services::rebalance::rebalance_requires_worker_activation)
+            };
+            let decommission_running =
+                pool_meta_has_active_decommission(&installed_pool_meta) || self.is_decommission_running().await;
+            let distributed = self.ctx.is_dist_erasure().await;
+            let fleet_proof_available = crate::services::notification_sys::acquire_cross_pool_fence_fleet_proof().is_some();
+            let mut rebalance_auto_start_deferred = false;
+            if should_auto_start_rebalance_after_init(decommission_running, rebalance_resume_required) {
+                if should_defer_rebalance_auto_start(distributed, fleet_proof_available) {
                     rebalance_auto_start_deferred = true;
                     warn!(
                         event = EVENT_ECSTORE_INIT_STATUS,
@@ -742,112 +742,128 @@ impl ECStore {
                         subsystem = LOG_SUBSYSTEM_STORE_INIT,
                         stage = "start_rebalance",
                         state = "deferred",
-                        reason = "fleet_capability_proof_changed",
-                        error = %err,
+                        reason = "fleet_capability_proof_unavailable",
                         retry_delay_secs = REBALANCE_RESUME_RETRY_DELAY.as_secs(),
-                        "Deferred rebalance auto-start after the fleet capability proof changed"
+                        "Deferred rebalance auto-start until a live fleet capability proof is available"
                     );
-                } else {
-                    return resolve_store_init_stage_result(Err(err), "start_rebalance");
-                }
-            }
-        } else if decommission_running && rebalance_resume_required {
-            warn!(
-                event = EVENT_ECSTORE_INIT_STATUS,
-                component = LOG_COMPONENT_ECSTORE,
-                subsystem = LOG_SUBSYSTEM_STORE_INIT,
-                stage = "start_rebalance",
-                reason = "active_decommission",
-                "Deferred rebalance auto-start during store init because decommission is active"
-            );
-        }
-
-        // Initialize the storage-owned scanner publication state only after
-        // both movement metadata sources have been loaded. SetDisks cache
-        // writers remain fail-closed until this snapshot is available.
-        let _ = self.scanner_data_usage_publication_blocked().await;
-
-        let pools = installed_pool_meta.return_resumable_pools();
-        let mut pool_indices = Vec::with_capacity(pools.len());
-
-        for p in pools.iter() {
-            if let Some(idx) = endpoints.get_pool_idx(&p.cmd_line) {
-                pool_indices.push(idx);
-            } else {
-                return Err(Error::other(format!(
-                    "store init failed to resolve resumable decommission pool `{}` from current endpoints",
-                    p.cmd_line
-                )));
-            }
-        }
-
-        let local_pool_indices = local_decommission_queue_prefix(&endpoints, &pool_indices)?;
-        let has_local_decommission_leadership = endpoints.as_ref().iter().any(pool_first_endpoint_is_local);
-        let pool_meta_write_safe = self
-            .ensure_pool_meta_side_effects_safe("decommission resume blocked while pool metadata requires recovery")
-            .await
-            .is_ok();
-        if !pool_meta_replica_state.repair_write_safe || !pool_meta_write_safe {
-            warn!(
-                event = EVENT_DECOMMISSION_RESUME_RETRY,
-                component = LOG_COMPONENT_ECSTORE,
-                subsystem = LOG_SUBSYSTEM_STORE_INIT,
-                state = "blocked",
-                pool_indices = ?local_pool_indices,
-                reason = "pool_meta_write_blocked",
-                "Decommission watchdog waiting for pool metadata recovery"
-            );
-        }
-        if has_local_decommission_leadership {
-            // The watchdog checks recovery safety and retries transient failures.
-            // Resume persisted work without an unconditional cold-start delay.
-            tokio::spawn(supervise_local_decommission_after_init(self.clone(), rx.clone()));
-        }
-
-        let recovery_store = self.clone();
-        let recovery_rx = rx.clone();
-        tokio::spawn(async move {
-            let mut delay = std::time::Duration::from_secs(5);
-            loop {
-                tokio::select! {
-                    _ = recovery_rx.cancelled() => return,
-                    _ = tokio::time::sleep(delay) => {}
-                }
-                let result = tokio::select! {
-                    _ = recovery_rx.cancelled() => return,
-                    result = tokio::time::timeout(std::time::Duration::from_secs(30), recovery_store.recover_pool_meta_transaction()) => result,
-                };
-                delay = match result {
-                    Ok(Ok(_)) => std::time::Duration::from_secs(5),
-                    failure => {
-                        let error = match failure {
-                            Ok(Err(error)) => error,
-                            _ => Error::Timeout,
-                        };
-                        recovery_store.record_pool_meta_recovery_failure(error);
-                        (delay * 2).min(std::time::Duration::from_secs(60))
+                } else if let Err(err) = self.start_rebalance().await {
+                    if crate::core::pools::is_pool_activation_fleet_proof_error(&err) {
+                        rebalance_auto_start_deferred = true;
+                        warn!(
+                            event = EVENT_ECSTORE_INIT_STATUS,
+                            component = LOG_COMPONENT_ECSTORE,
+                            subsystem = LOG_SUBSYSTEM_STORE_INIT,
+                            stage = "start_rebalance",
+                            state = "deferred",
+                            reason = "fleet_capability_proof_changed",
+                            error = %err,
+                            retry_delay_secs = REBALANCE_RESUME_RETRY_DELAY.as_secs(),
+                            "Deferred rebalance auto-start after the fleet capability proof changed"
+                        );
+                    } else {
+                        return resolve_store_init_stage_result(Err(err), "start_rebalance");
                     }
-                };
+                }
+            } else if decommission_running && rebalance_resume_required {
+                warn!(
+                    event = EVENT_ECSTORE_INIT_STATUS,
+                    component = LOG_COMPONENT_ECSTORE,
+                    subsystem = LOG_SUBSYSTEM_STORE_INIT,
+                    stage = "start_rebalance",
+                    reason = "active_decommission",
+                    "Deferred rebalance auto-start during store init because decommission is active"
+                );
             }
-        });
 
+            // Initialize the storage-owned scanner publication state only after
+            // both movement metadata sources have been loaded. SetDisks cache
+            // writers remain fail-closed until this snapshot is available.
+            let _ = self.scanner_data_usage_publication_blocked().await;
+
+            let pools = installed_pool_meta.return_resumable_pools();
+            let mut pool_indices = Vec::with_capacity(pools.len());
+
+            for p in pools.iter() {
+                if let Some(idx) = endpoints.get_pool_idx(&p.cmd_line) {
+                    pool_indices.push(idx);
+                } else {
+                    return Err(Error::other(format!(
+                        "store init failed to resolve resumable decommission pool `{}` from current endpoints",
+                        p.cmd_line
+                    )));
+                }
+            }
+
+            let local_pool_indices = local_decommission_queue_prefix(&endpoints, &pool_indices)?;
+            let has_local_decommission_leadership = endpoints.as_ref().iter().any(pool_first_endpoint_is_local);
+            let pool_meta_write_safe = self
+                .ensure_pool_meta_side_effects_safe("decommission resume blocked while pool metadata requires recovery")
+                .await
+                .is_ok();
+            if !pool_meta_replica_state.repair_write_safe || !pool_meta_write_safe {
+                warn!(
+                    event = EVENT_DECOMMISSION_RESUME_RETRY,
+                    component = LOG_COMPONENT_ECSTORE,
+                    subsystem = LOG_SUBSYSTEM_STORE_INIT,
+                    state = "blocked",
+                    pool_indices = ?local_pool_indices,
+                    reason = "pool_meta_write_blocked",
+                    "Decommission watchdog waiting for pool metadata recovery"
+                );
+            }
+            if has_local_decommission_leadership {
+                // The watchdog checks recovery safety and retries transient failures.
+                // Resume persisted work without an unconditional cold-start delay.
+                tokio::spawn(supervise_local_decommission_after_init(self.clone(), rx.clone()));
+            }
+
+            let recovery_store = self.clone();
+            let recovery_rx = rx.clone();
+            tokio::spawn(async move {
+                let mut delay = std::time::Duration::from_secs(5);
+                loop {
+                    tokio::select! {
+                        _ = recovery_rx.cancelled() => return,
+                        _ = tokio::time::sleep(delay) => {}
+                    }
+                    let result = tokio::select! {
+                        _ = recovery_rx.cancelled() => return,
+                        result = tokio::time::timeout(std::time::Duration::from_secs(30), recovery_store.recover_pool_meta_transaction()) => result,
+                    };
+                    delay = match result {
+                        Ok(Ok(_)) => std::time::Duration::from_secs(5),
+                        failure => {
+                            let error = match failure {
+                                Ok(Err(error)) => error,
+                                _ => Error::Timeout,
+                            };
+                            recovery_store.record_pool_meta_recovery_failure(error);
+                            (delay * 2).min(std::time::Duration::from_secs(60))
+                        }
+                    };
+                }
+            });
+
+            runtime_sources::init_bucket_monitor_for_current_endpoints();
+            crate::bucket::bucket_target_sys::BucketTargetSys::get().start_heartbeat();
+
+            init_background_expiry(self.clone()).await;
+            crate::bucket::lifecycle::bucket_lifecycle_ops::init_background_stale_multipart_upload_cleanup(self.clone());
+
+            TransitionState::init(self.clone()).await;
+            crate::services::tier::tier::try_migrate_tiering_config(self.clone()).await;
+
+            if let Err(err) = runtime_sources::init_tier_config_mgr(self.clone()).await {
+                info!("TierConfigMgr init error: {}", err);
+            }
+
+            if rebalance_auto_start_deferred {
+                let store = self.clone();
+                tokio::spawn(resume_rebalance_after_init(store, rx));
+            }
+        }
+        #[cfg(feature = "local-only")]
         runtime_sources::init_bucket_monitor_for_current_endpoints();
-        crate::bucket::bucket_target_sys::BucketTargetSys::get().start_heartbeat();
-
-        init_background_expiry(self.clone()).await;
-        crate::bucket::lifecycle::bucket_lifecycle_ops::init_background_stale_multipart_upload_cleanup(self.clone());
-
-        TransitionState::init(self.clone()).await;
-        crate::services::tier::tier::try_migrate_tiering_config(self.clone()).await;
-
-        if let Err(err) = runtime_sources::init_tier_config_mgr(self.clone()).await {
-            info!("TierConfigMgr init error: {}", err);
-        }
-
-        if rebalance_auto_start_deferred {
-            let store = self.clone();
-            tokio::spawn(resume_rebalance_after_init(store, rx));
-        }
 
         Ok(())
     }

@@ -1,3 +1,4 @@
+// Modified for the experimental single-node build, 2026-10-30.
 // Copyright 2024 RustFS Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -181,6 +182,7 @@ pub(crate) async fn init_startup_storage_runtime(
 
     init_startup_storage_global_config(store.clone()).await?;
     readiness.mark_stage(SystemStage::StorageReady);
+    #[cfg(not(feature = "single-node"))]
     init_background_replication(store.clone()).await;
 
     Ok(StartupStorageRuntime {
@@ -215,6 +217,7 @@ pub(crate) async fn init_embedded_startup_storage_runtime(
 
     init_embedded_startup_storage_global_config(store.clone()).await?;
     readiness.mark_stage(SystemStage::StorageReady);
+    #[cfg(not(feature = "single-node"))]
     init_background_replication(store.clone()).await;
 
     Ok(StartupStorageRuntime { store, shutdown_token })
